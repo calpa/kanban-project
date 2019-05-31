@@ -1,4 +1,5 @@
 const data = {
+  isModalOpened: false,
   cards: {
     "feature-1": {
       id: "feature-1",

@@ -2,13 +2,16 @@ import React, { Component } from "react";
 
 import { DragDropContext } from "react-beautiful-dnd";
 import styled from "styled-components";
+import Modal from "react-modal";
 
 import _ from "lodash";
+import nanoid from "nanoid";
 
 import data from "../Data";
 import Column from "../Column";
 
 import { sizes } from "../constants";
+import MyForm from "../Form";
 
 const Board = styled.div`
   display: flex;
@@ -25,17 +28,31 @@ const Title = styled.div`
   padding: 10px;
 `;
 
+const customStyles = {
+  content: {
+    top: "50%",
+    left: "50%",
+    right: "auto",
+    bottom: "auto",
+    marginRight: "-50%",
+    transform: "translate(-50%, -50%)"
+  }
+};
+
+Modal.setAppElement("#root");
+
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      columnsort: []
+      columnsort: [],
+      isModalOpened: false
     };
   }
 
   componentDidMount() {
     const kanbanData = window.localStorage.getItem("kanban-data");
-
+    console.log(kanbanData);
     if (kanbanData) {
       this.setState(JSON.parse(kanbanData));
       return;
@@ -76,7 +93,7 @@ class App extends Component {
         }
       };
       this.setState(newState);
-      window.localStorage.setItem("kanban-data", JSON.stringify(newState));
+      this.updateStorage(newState);
       return;
     }
 
@@ -103,15 +120,83 @@ class App extends Component {
       }
     };
     this.setState(newState);
-    window.localStorage.setItem("kanban-data", JSON.stringify(newState));
+    this.updateStorage(newState);
   }
 
-  // TODO: Add Item function
+  openModal() {
+    this.setState({
+      isModalOpened: true
+    });
+    return;
+  }
+
+  updateStorage(state) {
+    window.localStorage.setItem("kanban-data", JSON.stringify(state));
+  }
+
+  addNewCard({ text }) {
+    // Set Data
+
+    const id = nanoid();
+    const newCard = {
+      id,
+      name: text
+    };
+
+    const newCards = {
+      ...this.state.cards,
+      [id]: newCard
+    };
+
+    let newColumns = this.state.columns;
+    newColumns.backlog.ids.push(id);
+
+    const newState = {
+      ...this.state,
+      cards: newCards,
+      columns: newColumns,
+      isModalOpened: false
+    };
+
+    this.setState(newState);
+    this.updateStorage(newState);
+  }
+
+  closeModal() {
+    this.setState(state => ({ isModalOpened: false }));
+  }
 
   render() {
     return (
-      <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
         <Title>Kanban</Title>
+
+        <button
+          className="btn btn-info"
+          onClick={() => {
+            this.openModal();
+          }}
+        >
+          Add New Card
+        </button>
+
+        <Modal
+          isOpen={this.state.isModalOpened}
+          style={customStyles}
+          onRequestClose={() => this.closeModal()}
+        >
+          <MyForm
+            onSubmit={data => {
+              this.addNewCard(data);
+            }}
+          />
+        </Modal>
+
         <Board>
           <DragDropContext onDragEnd={result => this.onDragEnd(result)}>
             {this.state.columnsort.map(columnId => {
